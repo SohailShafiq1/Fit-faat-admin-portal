@@ -172,12 +172,19 @@ function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false 
     <div className="chat-interface">
       {/* Chat Header */}
       <div className="chat-header">
-        <div className="chat-header-avatar">
-          {appointment.user?.firstName?.[0]}{appointment.user?.lastName?.[0]}
+        <div className="chat-header-left">
+          <div className="chat-header-avatar">
+            {appointment.user?.firstName?.[0]}{appointment.user?.lastName?.[0]}
+          </div>
+          <div className="chat-header-info">
+            <h3>{appointment.user?.firstName} {appointment.user?.lastName}</h3>
+            <p>Appointment: {new Date(appointment.date).toLocaleDateString()}</p>
+          </div>
         </div>
-        <div className="chat-header-info">
-          <h3>{appointment.user?.firstName} {appointment.user?.lastName}</h3>
-          <p>Appointment: {new Date(appointment.date).toLocaleDateString()}</p>
+        <div className="chat-header-actions">
+          <button className="video-call-button" title="Start Video Call">
+            📹
+          </button>
         </div>
       </div>
 
