@@ -1,13 +1,34 @@
 import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
+import useVideoCall from '../hooks/useVideoCall';
+import VideoCallModal from './VideoCallModal';
 import './ChatInterface.css';
 
-function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false }) {
+function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false, doctorData }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Initialize video call hook
+  const videoCall = useVideoCall({
+    socket,
+    token,
+    apiUrl,
+    userId: doctorData?._id || doctorData?.id,
+    userName: doctorData?.name || `Dr. ${doctorData?.firstName} ${doctorData?.lastName}`
+  });
+
+  // Debug: Log video call initialization
+  useEffect(() => {
+    console.log('ChatInterface mounted/updated with:');
+    console.log('- doctorData:', doctorData);
+    console.log('- userId:', doctorData?._id || doctorData?.id);
+    console.log('- userName:', doctorData?.name || `Dr. ${doctorData?.firstName} ${doctorData?.lastName}`);
+    console.log('- socket:', socket);
+    console.log('- token:', token ? 'present' : 'missing');
+  }, [doctorData, socket, token]);
 
   useEffect(() => {
     if (appointment && socket) {
@@ -50,11 +71,19 @@ function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false 
 
   const handleMessagesRead = (data) => {
     console.log('Messages marked as read:', data);
-    setMessages(prev =>
-      prev.map(msg =>
-        data.messageIds.includes(msg._id) ? { ...msg, isRead: true } : msg
-      )
-    );
+    // Handle different data structures for message read events
+    if (data.messageIds && Array.isArray(data.messageIds)) {
+      setMessages(prev =>
+        prev.map(msg =>
+          data.messageIds.includes(msg._id) ? { ...msg, isRead: true } : msg
+        )
+      );
+    } else if (data.appointmentId) {
+      // Mark all messages as read for this appointment
+      setMessages(prev =>
+        prev.map(msg => ({ ...msg, isRead: true }))
+      );
+    }
   };
 
   const handleSocketError = (data) => {
@@ -117,6 +146,59 @@ function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false 
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleVideoCall = () => {
+    console.log('Video call button clicked');
+    console.log('Doctor data:', doctorData);
+    console.log('Socket:', socket);
+    console.log('Appointment:', appointment);
+    
+    if (!socket) {
+      console.error('Socket not connected');
+      alert('Socket connection not established. Please refresh the page.');
+      return;
+    }
+    
+    if (!doctorData) {
+      console.error('Doctor data not available');
+      alert('Doctor information not loaded. Please refresh the page.');
+      return;
+    }
+    
+    if (!appointment) {
+      console.error('Appointment data not available');
+      alert('Appointment information not available.');
+      return;
+    }
+    
+    // Handle both appointment.user (populated) and appointment.userId (not populated)
+    const patientId = appointment.user?._id || appointment.userId;
+    const patientName = appointment.user ? 
+      `${appointment.user.firstName} ${appointment.user.lastName}` : 
+      (appointment.userName || 'Patient');
+    
+    if (!patientId) {
+      console.error('Patient ID not available in appointment:', appointment);
+      alert('Patient information not available.');
+      return;
+    }
+    
+    console.log('Initiating video call to:', patientName, 'ID:', patientId);
+    console.log('📞 Call details:', {
+      receiverId: patientId,
+      receiverName: patientName,
+      appointmentId: appointment._id,
+      roomName: `appointment_${appointment._id}`,
+      callerId: doctorData?._id || doctorData?.id,
+      callerName: doctorData?.name || `Dr. ${doctorData?.firstName} ${doctorData?.lastName}`
+    });
+    
+    videoCall.startCall(
+      patientId,
+      patientName,
+      appointment._id
+    );
+  };
+
   const formatTime = (date) => {
     return new Date(date).toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -174,15 +256,27 @@ function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false 
       <div className="chat-header">
         <div className="chat-header-left">
           <div className="chat-header-avatar">
-            {appointment.user?.firstName?.[0]}{appointment.user?.lastName?.[0]}
+            {appointment.user ? 
+              `${appointment.user.firstName?.[0] || ''}${appointment.user.lastName?.[0] || ''}` :
+              (appointment.userName?.[0] || '?')
+            }
           </div>
           <div className="chat-header-info">
-            <h3>{appointment.user?.firstName} {appointment.user?.lastName}</h3>
+            <h3>
+              {appointment.user ? 
+                `${appointment.user.firstName} ${appointment.user.lastName}` :
+                (appointment.userName || 'Patient')
+              }
+            </h3>
             <p>Appointment: {new Date(appointment.date).toLocaleDateString()}</p>
           </div>
         </div>
         <div className="chat-header-actions">
-          <button className="video-call-button" title="Start Video Call">
+          <button 
+            className="video-call-button" 
+            title="Start Video Call"
+            onClick={handleVideoCall}
+          >
             📹
           </button>
         </div>
@@ -254,6 +348,22 @@ function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false 
           {sending ? '⏳' : '📤'}
         </button>
       </form>
+
+      {/* Video Call Modal */}
+      <VideoCallModal
+        remoteVideoRef={videoCall.remoteVideoRef}
+        localVideoRef={videoCall.localVideoRef}
+        incomingCall={videoCall.incomingCall}
+        isConnecting={videoCall.isConnecting}
+        isConnected={videoCall.isConnected}
+        isAudioEnabled={videoCall.isAudioEnabled}
+        isVideoEnabled={videoCall.isVideoEnabled}
+        onAcceptCall={videoCall.acceptCall}
+        onRejectCall={videoCall.rejectCall}
+        onToggleAudio={videoCall.toggleAudio}
+        onToggleVideo={videoCall.toggleVideo}
+        onEndCall={videoCall.disconnectCall}
+      />
     </div>
   );
 }

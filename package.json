@@ -15,7 +15,9 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "twilio": "^5.12.1",
+    "twilio-video": "^2.34.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",

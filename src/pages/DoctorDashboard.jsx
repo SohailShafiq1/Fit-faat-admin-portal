@@ -216,6 +216,7 @@ function DoctorDashboard({ doctorData, token, apiUrl, onLogout }) {
                     apiUrl={apiUrl}
                     socket={socket}
                     doctorMode={true}
+                    doctorData={doctorData}
                   />
                 ) : (
                   <div className="no-chat-selected">
