@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useState } from 'react';
 import './LoginPage.css';
 
-function LoginPage({ onLogin, apiUrl }) {
+function LoginPage({ onLogin, apiUrl, onSwitchToDoctor }) {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -218,6 +218,13 @@ function LoginPage({ onLogin, apiUrl }) {
 
         <div className="login-footer">
           <p>Only registered admins can access this portal</p>
+          <button 
+            type="button"
+            onClick={onSwitchToDoctor}
+            className="doctor-login-link"
+          >
+            👨‍⚕️ Doctors Login
+          </button>
         </div>
       </div>
     </div>
