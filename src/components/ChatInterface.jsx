@@ -4,6 +4,18 @@ import useVideoCall from '../hooks/useVideoCall';
 import VideoCallModal from './VideoCallModal';
 import './ChatInterface.css';
 
+// Helper function to decode JWT token
+const decodeToken = (token) => {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload));
+    return decoded;
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return null;
+  }
+};
+
 function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false, doctorData }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -11,22 +23,38 @@ function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false,
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // Get User account ID from token as fallback
+  const getUserAccountId = () => {
+    if (doctorData?.userId) {
+      return doctorData.userId;
+    }
+    if (socket?.userId) {
+      return socket.userId;
+    }
+    // Fallback: decode from JWT token
+    const tokenData = decodeToken(token);
+    return tokenData?.id;
+  };
+
   // Initialize video call hook
   const videoCall = useVideoCall({
     socket,
     token,
     apiUrl,
-    userId: doctorData?._id || doctorData?.id,
-    userName: doctorData?.name || `Dr. ${doctorData?.firstName} ${doctorData?.lastName}`
+    userId: doctorData?._id || doctorData?.id, // Use Doctor document ID for outbound calls
+    userName: doctorData?.name || `Dr. ${doctorData?.firstName} ${doctorData?.lastName}` || `Dr. ${doctorData?.personalInfo?.firstName} ${doctorData?.personalInfo?.lastName}`,
+    userAccountId: getUserAccountId() // Get User account ID for inbound call acceptance
   });
 
   // Debug: Log video call initialization
   useEffect(() => {
     console.log('ChatInterface mounted/updated with:');
     console.log('- doctorData:', doctorData);
-    console.log('- userId:', doctorData?._id || doctorData?.id);
-    console.log('- userName:', doctorData?.name || `Dr. ${doctorData?.firstName} ${doctorData?.lastName}`);
+    console.log('- userId (Doctor document ID):', doctorData?._id || doctorData?.id);
+    console.log('- userAccountId (User account ID):', getUserAccountId());
+    console.log('- userName:', doctorData?.name || `Dr. ${doctorData?.firstName} ${doctorData?.lastName}` || `Dr. ${doctorData?.personalInfo?.firstName} ${doctorData?.personalInfo?.lastName}`);
     console.log('- socket:', socket);
+    console.log('- socket.userId:', socket?.userId);
     console.log('- token:', token ? 'present' : 'missing');
   }, [doctorData, socket, token]);
 
@@ -184,12 +212,12 @@ function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false,
     
     console.log('Initiating video call to:', patientName, 'ID:', patientId);
     console.log('📞 Call details:', {
-      receiverId: patientId,
+      receiverId: patientId, // This is patient's User account ID
       receiverName: patientName,
       appointmentId: appointment._id,
       roomName: `appointment_${appointment._id}`,
-      callerId: doctorData?._id || doctorData?.id,
-      callerName: doctorData?.name || `Dr. ${doctorData?.firstName} ${doctorData?.lastName}`
+      callerId: doctorData?._id || doctorData?.id, // Use Doctor document ID for outbound calls
+      callerName: doctorData?.name || `Dr. ${doctorData?.firstName} ${doctorData?.lastName}` || `Dr. ${doctorData?.personalInfo?.firstName} ${doctorData?.personalInfo?.lastName}`
     });
     
     videoCall.startCall(
@@ -358,8 +386,8 @@ function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false,
         isConnected={videoCall.isConnected}
         isAudioEnabled={videoCall.isAudioEnabled}
         isVideoEnabled={videoCall.isVideoEnabled}
-        onAcceptCall={videoCall.acceptCall}
-        onRejectCall={videoCall.rejectCall}
+        onAccept={videoCall.acceptCall}
+        onReject={videoCall.rejectCall}
         onToggleAudio={videoCall.toggleAudio}
         onToggleVideo={videoCall.toggleVideo}
         onEndCall={videoCall.disconnectCall}

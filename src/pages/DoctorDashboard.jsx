@@ -182,29 +182,50 @@ function DoctorDashboard({ doctorData, token, apiUrl, onLogout }) {
                     <p>📅 No appointments found</p>
                   </div>
                 ) : (
-                  appointments.map((appointment) => (
-                    <div
-                      key={appointment._id}
-                      className={`appointment-card ${selectedAppointment?._id === appointment._id ? 'selected' : ''}`}
-                      onClick={() => handleAppointmentSelect(appointment)}
-                    >
-                      <div className="appointment-avatar">
-                        {appointment.user?.firstName?.[0]}{appointment.user?.lastName?.[0]}
+                  appointments.map((appointment, index) => {
+                    const isRecent = index === 0;
+                    const isToday = new Date(appointment.date).toDateString() === new Date().toDateString();
+                    const isUpcoming = new Date(appointment.date) > new Date();
+                    return (
+                      <div
+                        key={appointment._id}
+                        className={`appointment-card ${
+                          selectedAppointment?._id === appointment._id ? 'selected' : ''
+                        } ${
+                          isRecent ? 'recent-appointment' : ''
+                        } ${
+                          isToday ? 'today-appointment' : ''
+                        }`}
+                        onClick={() => handleAppointmentSelect(appointment)}
+                      >
+                        {isRecent && (
+                          <div className="appointment-badge">
+                            🔥 Most Recent
+                          </div>
+                        )}
+                        {isToday && (
+                          <div className="today-badge">
+                            📅 Today
+                          </div>
+                        )}
+                        <div className="appointment-avatar">
+                          {appointment.user?.firstName?.[0]}{appointment.user?.lastName?.[0]}
+                        </div>
+                        <div className="appointment-info">
+                          <h3>{appointment.user?.firstName} {appointment.user?.lastName}</h3>
+                          <p className="appointment-date">
+                            {new Date(appointment.date).toLocaleDateString()}
+                          </p>
+                          <p className="appointment-status">{appointment.status}</p>
+                        </div>
+                        {unreadCounts[appointment._id] > 0 && (
+                          <span className="unread-count">
+                            {unreadCounts[appointment._id]}
+                          </span>
+                        )}
                       </div>
-                      <div className="appointment-info">
-                        <h3>{appointment.user?.firstName} {appointment.user?.lastName}</h3>
-                        <p className="appointment-date">
-                          {new Date(appointment.date).toLocaleDateString()}
-                        </p>
-                        <p className="appointment-status">{appointment.status}</p>
-                      </div>
-                      {unreadCounts[appointment._id] > 0 && (
-                        <span className="unread-count">
-                          {unreadCounts[appointment._id]}
-                        </span>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 

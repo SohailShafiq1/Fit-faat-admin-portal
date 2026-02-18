@@ -29,11 +29,27 @@ function VideoCallModal({
             <p className="caller-name">{incomingCall.callerName}</p>
           </div>
           <div className="incoming-call-actions">
-            <button className="accept-call-btn" onClick={onAccept}>
+            <button 
+              className="accept-call-btn" 
+              onClick={() => {
+                console.log('🟢 ========== ACCEPT BUTTON CLICKED ==========');
+                console.log('🟢 Incoming call data:', incomingCall);
+                console.log('🟢 Calling onAccept function...');
+                onAccept();
+                console.log('🟢 onAccept function called');
+                console.log('🟢 ========================================');
+              }}
+            >
               <span className="btn-icon">📞</span>
               Accept
             </button>
-            <button className="reject-call-btn" onClick={onReject}>
+            <button 
+              className="reject-call-btn" 
+              onClick={() => {
+                console.log('❌ DECLINE BUTTON CLICKED');
+                onReject();
+              }}
+            >
               <span className="btn-icon">✖️</span>
               Decline
             </button>

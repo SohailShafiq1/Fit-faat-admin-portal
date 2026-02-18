@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Video from 'twilio-video';
 
-export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
+export const useVideoCall = ({ socket, token, apiUrl, userId, userName, userAccountId }) => {
   const [room, setRoom] = useState(null);
   const [localTracks, setLocalTracks] = useState([]);
   const [remoteTracks, setRemoteTracks] = useState([]);
@@ -22,13 +22,22 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
     if (!socket) return;
 
     const handleIncomingCall = (data) => {
-      console.log('📞 Incoming video call:', data);
+      console.log('📞 ========== INCOMING CALL RECEIVED ==========');
+      console.log('📞 Incoming video call received:', data);
+      console.log('📞 Current userId:', userId);
+      console.log('📞 Current userName:', userName);
+      console.log('📞 Setting incoming call state...');
       setIncomingCall(data);
+      console.log('📞 ✅ Incoming call state set');
+      console.log('📞 ========================================');
     };
 
     const handleCallAccepted = (data) => {
-      console.log('✅ Call accepted:', data);
-      // Both parties should now join the room
+      console.log('✅ ========== CALL ACCEPTED NOTIFICATION ==========');
+      console.log('✅ Call accepted notification received:', data);
+      console.log('✅ Current doctor userId:', userId);
+      console.log('✅ Both parties should now be in room:', data.roomName);
+      console.log('✅ ============================================');
     };
 
     const handleCallRejected = (data) => {
@@ -58,6 +67,7 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
   // Get Twilio token and connect to room
   const connectToRoom = useCallback(async (roomName) => {
     try {
+      console.log('🔗 ========== CONNECTING TO TWILIO ROOM ==========');
       console.log('🔗 connectToRoom called for:', roomName);
       console.log('🔗 API URL:', apiUrl);
       console.log('🔗 User info:', { userId, userName });
@@ -97,13 +107,18 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
       }
 
       // Connect to Twilio Video room
+      console.log('🔗 Connecting to Twilio Video with room name:', roomName);
       const twilioRoom = await Video.connect(twilioToken, {
         name: roomName,
         audio: true,
         video: { width: 640, height: 480 }
       });
 
+      console.log('✅ ========== TWILIO CONNECTION SUCCESS ==========');
       console.log('✅ Connected to Twilio room:', twilioRoom.name);
+      console.log('✅ Room participants:', twilioRoom.participants.size);
+      console.log('✅ Local participant:', twilioRoom.localParticipant.identity);
+      
       roomRef.current = twilioRoom; // Store in ref
       setRoom(twilioRoom);
       setIsConnected(true);
@@ -117,20 +132,28 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
             const videoElement = publication.track.attach();
             localVideoRef.current.innerHTML = '';
             localVideoRef.current.appendChild(videoElement);
+            console.log('✅ Local video track attached');
           }
         }
       });
 
       // Handle existing remote participants
       twilioRoom.participants.forEach((participant) => {
+        console.log('👤 Existing participant found:', participant.identity);
         handleParticipantConnected(participant);
       });
 
       // Handle new participants joining
-      twilioRoom.on('participantConnected', handleParticipantConnected);
+      twilioRoom.on('participantConnected', (participant) => {
+        console.log('👤 New participant joined:', participant.identity);
+        handleParticipantConnected(participant);
+      });
 
       // Handle participants leaving
-      twilioRoom.on('participantDisconnected', handleParticipantDisconnected);
+      twilioRoom.on('participantDisconnected', (participant) => {
+        console.log('👋 Participant left:', participant.identity);
+        handleParticipantDisconnected(participant);
+      });
 
       // Handle disconnection
       twilioRoom.on('disconnected', () => {
@@ -141,8 +164,12 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
         roomRef.current = null;
       });
 
+      console.log('✅ ============================================');
+
     } catch (err) {
+      console.error('❌ ========== TWILIO CONNECTION ERROR ==========');
       console.error('❌ Error connecting to room:', err);
+      console.error('❌ Error details:', err.message);
       setError(err.message);
       setIsConnecting(false);
       setIsConnected(false);
@@ -153,6 +180,7 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
         roomRef.current = null;
       }
       setRoom(null);
+      console.error('❌ ========================================');
     }
   }, [apiUrl, token, userId, userName, localVideoRef]);
 
@@ -215,7 +243,11 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
 
   // Start a call
   const startCall = useCallback(async (receiverId, receiverName, appointmentId) => {
-    console.log('📞 startCall invoked with:', { receiverId, receiverName, appointmentId, userId, userName, socket: !!socket });
+    console.log('📞 ===== DOCTOR STARTING CALL =====');
+    console.log('📞 startCall invoked with:', { receiverId, receiverName, appointmentId });
+    console.log('📞 Doctor userId (from hook):', userId);  
+    console.log('📞 Doctor userName (from hook):', userName);
+    console.log('📞 Socket available:', !!socket);
     
     if (!socket) {
       console.error('❌ Socket not available in startCall');
@@ -230,7 +262,7 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
     }
     
     const roomName = `appointment_${appointmentId}`;
-    console.log('📞 Emitting video:call-user event for room:', roomName);
+    console.log('📞 Generated roomName:', roomName);
     
     const callPayload = {
       roomName,
@@ -238,14 +270,16 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
       receiverId,
       callerName: userName
     };
-    console.log('📞 Socket emit payload:', callPayload);
+    console.log('📞 Socket emit payload to patient:', callPayload);
+    console.log('📞 Target socket room: user:' + receiverId);
     
     // Emit call initiation to socket
     socket.emit('video:call-user', callPayload);
 
-    console.log('📞 Connecting to room:', roomName);
-    // Connect to room immediately (caller joins first)
+    console.log('📞 Connecting doctor to room immediately:', roomName);
+    // Doctor (caller) connects immediately as before
     await connectToRoom(roomName);
+    console.log('📞 ===================================');
   }, [socket, userId, userName, connectToRoom]);
 
   // Accept an incoming call
@@ -254,17 +288,25 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName }) => {
 
     const { roomName, callerId } = incomingCall;
 
+    console.log('🟢 Doctor accepting call from:', callerId, 'in room:', roomName);
+    console.log('🟢 Doctor userId (Doctor document ID):', userId);
+    console.log('🟢 Doctor userAccountId (User account ID):', userAccountId);
+
     // Notify the caller that call was accepted
+    // Use userId (Doctor document ID) for socket communication since that's what patient targeted
     socket.emit('video:accept-call', {
       roomName,
       callerId,
-      receiverId: userId
+      receiverId: userId // Use Doctor document ID that patient originally targeted
     });
+
+    console.log('🟢 Emitted accept-call with Doctor document ID:', userId);
+    console.log('🟢 Now connecting doctor to room...');
 
     // Connect to room
     await connectToRoom(roomName);
     setIncomingCall(null);
-  }, [incomingCall, socket, userId, connectToRoom]);
+  }, [incomingCall, socket, userId, userAccountId, connectToRoom]);
 
   // Reject an incoming call
   const rejectCall = useCallback(() => {
