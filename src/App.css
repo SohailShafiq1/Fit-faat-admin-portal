@@ -5,6 +5,12 @@
   overflow: hidden;
 }
 
+/* Medical gradient for patient interface */
+.medical-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
