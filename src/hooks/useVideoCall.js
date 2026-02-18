@@ -125,14 +125,18 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName, userAcco
       setIsConnecting(false);
 
       // Attach local tracks
+      console.log('📹 Setting up local video tracks...');
       twilioRoom.localParticipant.tracks.forEach((publication) => {
         if (publication.track) {
           setLocalTracks((prev) => [...prev, publication.track]);
           if (publication.track.kind === 'video' && localVideoRef.current) {
             const videoElement = publication.track.attach();
+            console.log('📹 Local video element created:', videoElement);
             localVideoRef.current.innerHTML = '';
             localVideoRef.current.appendChild(videoElement);
-            console.log('✅ Local video track attached');
+            console.log('✅ Local video track attached successfully');
+          } else if (publication.track.kind === 'audio') {
+            console.log('✅ Local audio track ready');
           }
         }
       });
@@ -184,19 +188,51 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName, userAcco
     }
   }, [apiUrl, token, userId, userName, localVideoRef]);
 
+  // Attach track to DOM
+  const attachTrack = useCallback((track) => {
+    console.log('📹 Attaching track:', track.kind);
+    if (track.kind === 'video' && remoteVideoRef.current) {
+      setRemoteTracks((prev) => [...prev, track]);
+      const videoElement = track.attach();
+      console.log('📹 Video element created:', videoElement);
+      remoteVideoRef.current.innerHTML = '';
+      remoteVideoRef.current.appendChild(videoElement);
+      console.log('✅ Remote video track attached successfully');
+    } else if (track.kind === 'audio') {
+      track.attach();
+      console.log('✅ Remote audio track attached');
+    }
+  }, [remoteVideoRef]);
+
+  // Detach track from DOM
+  const detachTrack = useCallback((track) => {
+    track.detach().forEach((element) => element.remove());
+    setRemoteTracks((prev) => prev.filter((t) => t !== track));
+  }, []);
+
   // Handle participant connected
   const handleParticipantConnected = useCallback((participant) => {
     console.log('👤 Participant connected:', participant.identity);
+    console.log('👤 Participant tracks:', participant.tracks.size);
 
     participant.tracks.forEach((publication) => {
-      if (publication.isSubscribed) {
+      console.log('📹 Checking publication:', publication.kind, 'subscribed:', publication.isSubscribed);
+      if (publication.isSubscribed && publication.track) {
+        console.log('📹 Attaching already subscribed track:', publication.track.kind);
         attachTrack(publication.track);
       }
     });
 
-    participant.on('trackSubscribed', attachTrack);
-    participant.on('trackUnsubscribed', detachTrack);
-  }, [remoteVideoRef]);
+    participant.on('trackSubscribed', (track) => {
+      console.log('📹 New track subscribed:', track.kind);
+      attachTrack(track);
+    });
+    
+    participant.on('trackUnsubscribed', (track) => {
+      console.log('📹 Track unsubscribed:', track.kind);
+      detachTrack(track);
+    });
+  }, [attachTrack, detachTrack]);
 
   // Handle participant disconnected
   const handleParticipantDisconnected = useCallback((participant) => {
@@ -207,25 +243,7 @@ export const useVideoCall = ({ socket, token, apiUrl, userId, userName, userAcco
         detachTrack(publication.track);
       }
     });
-  }, []);
-
-  // Attach track to DOM
-  const attachTrack = useCallback((track) => {
-    if (track.kind === 'video' && remoteVideoRef.current) {
-      setRemoteTracks((prev) => [...prev, track]);
-      const videoElement = track.attach();
-      remoteVideoRef.current.innerHTML = '';
-      remoteVideoRef.current.appendChild(videoElement);
-    } else if (track.kind === 'audio') {
-      track.attach();
-    }
-  }, [remoteVideoRef]);
-
-  // Detach track from DOM
-  const detachTrack = useCallback((track) => {
-    track.detach().forEach((element) => element.remove());
-    setRemoteTracks((prev) => prev.filter((t) => t !== track));
-  }, []);
+  }, [detachTrack]);
 
   // Clean up tracks
   const cleanupTracks = useCallback(() => {

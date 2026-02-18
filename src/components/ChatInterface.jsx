@@ -379,13 +379,14 @@ function ChatInterface({ appointment, token, apiUrl, socket, doctorMode = false,
 
       {/* Video Call Modal */}
       <VideoCallModal
+        isOpen={videoCall.incomingCall || videoCall.isConnected || videoCall.isConnecting}
         remoteVideoRef={videoCall.remoteVideoRef}
         localVideoRef={videoCall.localVideoRef}
         incomingCall={videoCall.incomingCall}
         isConnecting={videoCall.isConnecting}
         isConnected={videoCall.isConnected}
-        isAudioEnabled={videoCall.isAudioEnabled}
-        isVideoEnabled={videoCall.isVideoEnabled}
+        audioEnabled={videoCall.isAudioEnabled}
+        videoEnabled={videoCall.isVideoEnabled}
         onAccept={videoCall.acceptCall}
         onReject={videoCall.rejectCall}
         onToggleAudio={videoCall.toggleAudio}
