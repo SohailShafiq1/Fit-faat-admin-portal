@@ -169,7 +169,7 @@ function DoctorsList({ token, apiUrl }) {
               <th>Email</th>
               <th>Specialization</th>
               <th>Status</th>
-              <th>License</th>
+              <th>Experience</th>
               <th>Submitted</th>
               <th>Action</th>
             </tr>
@@ -196,7 +196,7 @@ function DoctorsList({ token, apiUrl }) {
                       {doctor.status.charAt(0).toUpperCase() + doctor.status.slice(1)}
                     </span>
                   </td>
-                  <td>{doctor.professionalInfo?.licenseNumber || 'N/A'}</td>
+                  <td>{doctor.professionalInfo?.yearsOfExperience || 'N/A'} years</td>
                   <td>{new Date(doctor.createdAt).toLocaleDateString()}</td>
                   <td>
                     <button
@@ -246,12 +246,8 @@ function DoctorsList({ token, apiUrl }) {
                   <div className="detail-value">{selectedDoctor.personalInfo?.phone || 'N/A'}</div>
                 </div>
                 <div className="detail-row">
-                  <div className="detail-label">Date of Birth:</div>
-                  <div className="detail-value">
-                    {selectedDoctor.personalInfo?.dateOfBirth 
-                      ? new Date(selectedDoctor.personalInfo.dateOfBirth).toLocaleDateString() 
-                      : 'N/A'}
-                  </div>
+                  <div className="detail-label">Gender:</div>
+                  <div className="detail-value">{selectedDoctor.personalInfo?.gender || 'N/A'}</div>
                 </div>
               </div>
 
@@ -263,16 +259,16 @@ function DoctorsList({ token, apiUrl }) {
                   <div className="detail-value">{selectedDoctor.professionalInfo?.specialization || 'N/A'}</div>
                 </div>
                 <div className="detail-row">
-                  <div className="detail-label">License Number:</div>
-                  <div className="detail-value">{selectedDoctor.professionalInfo?.licenseNumber || 'N/A'}</div>
+                  <div className="detail-label">Domain:</div>
+                  <div className="detail-value">{selectedDoctor.professionalInfo?.domain || 'N/A'}</div>
                 </div>
                 <div className="detail-row">
-                  <div className="detail-label">License Expiry:</div>
-                  <div className="detail-value">
-                    {selectedDoctor.professionalInfo?.licenseExpiry 
-                      ? new Date(selectedDoctor.professionalInfo.licenseExpiry).toLocaleDateString() 
-                      : 'N/A'}
-                  </div>
+                  <div className="detail-label">Qualifications:</div>
+                  <div className="detail-value">{selectedDoctor.professionalInfo?.qualifications || 'N/A'}</div>
+                </div>
+                <div className="detail-row">
+                  <div className="detail-label">University:</div>
+                  <div className="detail-value">{selectedDoctor.professionalInfo?.university || 'N/A'}</div>
                 </div>
                 <div className="detail-row">
                   <div className="detail-label">Years of Experience:</div>
